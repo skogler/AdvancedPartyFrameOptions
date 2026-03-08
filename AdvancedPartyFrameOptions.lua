@@ -236,19 +236,24 @@ local function CreateMinimapButton()
     btn:SetScript("OnLeave", GameTooltip_Hide)
     local function UpdatePosition()
         local angle = math.rad(AdvancedPartyFrameOptionsDB.minimapPos or 45)
-        local x = 80 * math.cos(angle)
-        local y = 80 * math.sin(angle)
+        -- Standard minimap radius is roughly width/2. Adding a small offset (e.g., 5-10) 
+        -- ensures it stays on the border.
+        local radius = (Minimap:GetWidth() / 2) + 5
+        local x = radius * math.cos(angle)
+        local y = radius * math.sin(angle)
         btn:SetPoint("CENTER", Minimap, "CENTER", x, y)
         btn:SetShown(AdvancedPartyFrameOptionsDB.showMinimapButton)
     end
     btn:SetScript("OnDragStart", function(self)
         self:SetScript("OnUpdate", function()
-            local x, y = GetCursorPosition()
-            local xmin, ymin = Minimap:GetLeft(), Minimap:GetBottom()
+            local cx, cy = GetCursorPosition()
+            local mx, my = Minimap:GetCenter()
             local scale = Minimap:GetEffectiveScale()
-            x = x / scale - xmin - 70
-            y = y / scale - ymin - 70
-            local angle = math.atan2(y, x)
+            
+            -- Convert cursor to the same coordinate space as Minimap center
+            cx, cy = cx / scale, cy / scale
+            
+            local angle = math.atan2(cy - my, cx - mx)
             AdvancedPartyFrameOptionsDB.minimapPos = math.deg(angle)
             UpdatePosition()
         end)
@@ -262,7 +267,23 @@ end
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("GROUP_ROSTER_UPDATE")
+f:RegisterEvent("PLAYER_REGEN_ENABLED")
+
+local function HookUpdateVisibility()
+    if CompactPartyFrame and not CompactPartyFrame.APFOHooked then
+        hooksecurefunc(CompactPartyFrame, "UpdateVisibility", function(self)
+            if AdvancedPartyFrameOptionsDB.alwaysShow and not IsInGroup() and not InCombatLockdown() then
+                self:Show()
+                if CompactPartyFrameMember1 then
+                    CompactPartyFrameMember1:Show()
+                end
+            end
+        end)
+        CompactPartyFrame.APFOHooked = true
+    end
+end
 
 f:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
@@ -278,9 +299,11 @@ f:SetScript("OnEvent", function(self, event, arg1)
         hooksecurefunc("CompactUnitFrame_UpdateHealthColor", ApplyStatusBarTexture)
         hooksecurefunc("CompactUnitFrame_UpdatePower", ApplyStatusBarTexture)
         
+        HookUpdateVisibility()
         UpdateAll()
         CreateMinimapButton()
-    elseif event == "GROUP_ROSTER_UPDATE" then
+    elseif event == "PLAYER_ENTERING_WORLD" or event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_REGEN_ENABLED" then
+        HookUpdateVisibility()
         UpdateAll()
     end
 end)
