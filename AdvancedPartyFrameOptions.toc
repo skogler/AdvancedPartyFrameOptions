@@ -1,0 +1,15 @@
+## Interface: 120001
+## Title: AdvancedPartyFrameOptions
+## Notes: Hides the "Party" label and/or role icons on the party frame.
+## Author: skogler
+## Version: 1.0.0
+## Category: Unit Frames
+## IconTexture: Interface\Icons\Achievement_GuildPerk_EverybodysFriend
+## SavedVariables: AdvancedPartyFrameOptionsDB
+## DefaultState: Enabled
+
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+libs\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
+
+AdvancedPartyFrameOptions.lua
