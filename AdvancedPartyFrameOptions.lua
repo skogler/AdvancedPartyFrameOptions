@@ -55,17 +55,23 @@ end
 local function ApplyStatusBarTexture(frame)
     if not frame or not AdvancedPartyFrameOptionsDB.statusBarTexture or AdvancedPartyFrameOptionsDB.statusBarTexture == "Default" then return end
 
-    -- Only apply to Party, Raid, or Player (when using raid-style party frames)
+    -- Abort immediately if it's a nameplate or another frame flagged to ignore standard requirements.
+    -- This property is safe to read and reliably identifies nameplates in the Blizzard UI.
+    if frame.ignoreCUFNameRequirement then return end
+
+    -- Check unit early to skip nameplates before calling any methods
     local unit = frame.unit
+    if unit and unit:find("nameplate") then return end
+
     local isTargetFrame = false
-    
     if unit then
         if unit:find("^party") or unit:find("^raid") or unit == "player" then
             isTargetFrame = true
         end
     end
 
-    -- Fallback: Check frame names if unit isn't set yet
+    -- Fallback: Check frame names if unit isn't set yet.
+    -- We've already excluded nameplates above, so calling GetName is now safe.
     if not isTargetFrame then
         local name = frame.GetName and frame:GetName()
         if name and (name:find("^CompactPartyFrameMember") or name:find("^CompactRaidFrame") or name:find("^CompactRaidGroup")) then
@@ -73,8 +79,8 @@ local function ApplyStatusBarTexture(frame)
         end
     end
 
-    -- Explicitly skip nameplates and frames flagged to ignore standard CUF requirements
-    if not isTargetFrame or frame.ignoreCUFNameRequirement or (unit and unit:find("nameplate")) then return end
+    -- Only proceed for Party, Raid, or Player frames
+    if not isTargetFrame then return end
 
     -- Ensure healthBar exists and is a valid StatusBar object
     if not frame.healthBar or not frame.healthBar.GetObjectType or frame.healthBar:GetObjectType() ~= "StatusBar" then return end
