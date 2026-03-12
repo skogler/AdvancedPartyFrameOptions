@@ -53,7 +53,31 @@ local function UpdateTitle()
 end
 
 local function ApplyStatusBarTexture(frame)
-    if not frame or not frame.healthBar or not AdvancedPartyFrameOptionsDB.statusBarTexture or AdvancedPartyFrameOptionsDB.statusBarTexture == "Default" then return end
+    if not frame or not AdvancedPartyFrameOptionsDB.statusBarTexture or AdvancedPartyFrameOptionsDB.statusBarTexture == "Default" then return end
+
+    -- Only apply to Party, Raid, or Player (when using raid-style party frames)
+    local unit = frame.unit
+    local isTargetFrame = false
+    
+    if unit then
+        if unit:find("^party") or unit:find("^raid") or unit == "player" then
+            isTargetFrame = true
+        end
+    end
+
+    -- Fallback: Check frame names if unit isn't set yet
+    if not isTargetFrame then
+        local name = frame.GetName and frame:GetName()
+        if name and (name:find("^CompactPartyFrameMember") or name:find("^CompactRaidFrame") or name:find("^CompactRaidGroup")) then
+            isTargetFrame = true
+        end
+    end
+
+    -- Explicitly skip nameplates and frames flagged to ignore standard CUF requirements
+    if not isTargetFrame or frame.ignoreCUFNameRequirement or (unit and unit:find("nameplate")) then return end
+
+    -- Ensure healthBar exists and is a valid StatusBar object
+    if not frame.healthBar or not frame.healthBar.GetObjectType or frame.healthBar:GetObjectType() ~= "StatusBar" then return end
     
     local texturePath
     if LSM then
@@ -71,7 +95,7 @@ local function ApplyStatusBarTexture(frame)
         frame.healthBar:SetStatusBarTexture(texturePath)
         
         -- Apply to Power Bar
-        if frame.powerBar then
+        if frame.powerBar and frame.powerBar.GetObjectType and frame.powerBar:GetObjectType() == "StatusBar" then
             local pTex = frame.powerBar:GetStatusBarTexture()
             if pTex then
                 pTex:SetAtlas(nil)
